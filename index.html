@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -432,69 +432,43 @@
   </div>
 
   <div id="cardapio"></div>
-  
-  <script>
-    async function carregarProdutos() {
-      
-    const { data, error } = await supabaseClient
-    .from("produtos")
-    .select("*");
-    
-    if (error) {
-    console.error(error);
-    return;
-    }
-    
-    const container = document.getElementById("cardapio");
-    
-    container.innerHTML = "";
-    
-    data.forEach(produto => {
-    
-    container.innerHTML += `
-    <div class="item-cardapio">
-      <h3>${produto.nome}</h3>
-      <p>${produto.descricao}</p>
-      <span>R$ ${produto.preco}</span>
-    </div>
-    `;
-    
-    });
-    
-    }
-    
-    carregarProdutos();
-
-  </script>
-
-
-
-
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <script>
     const supabaseClient = supabase.createClient(
       "https://chgngyuancvutzubensn.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoZ25neXVhbmN2dXR6dWJlbnNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxOTI5NzEsImV4cCI6MjA4ODc2ODk3MX0.CVmviqYNLbLsMAzGL6c5uNIcP7p0eEx8XVsw7BtfMl8"
     );
 
-    async function carregarProdutos() {
-
-      const { data, error } = await supabaseClient
-        .from("produtos")
-        .select("*");
+    async function carregarProdutosSupabase() {
+      const { data, error } = await supabaseClient.from("produtos").select("*");
 
       if (error) {
         console.error(error);
         return;
       }
 
-      console.log(data);
+      const container = document.getElementById("cardapio");
+      if (!container) {
+        return;
+      }
 
+      container.innerHTML = "";
+      data.forEach((produto) => {
+        container.innerHTML += `
+          <div class="item-cardapio">
+            <h3>${produto.nome}</h3>
+            <p>${produto.descricao}</p>
+            <span>R$ ${produto.preco}</span>
+          </div>
+        `;
+      });
     }
 
-    carregarProdutos();
+    document.addEventListener("DOMContentLoaded", () => {
+      carregarProdutosSupabase();
+    });
   </script>
 
 
