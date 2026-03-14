@@ -13,6 +13,7 @@
   --erro: #ff6a6a;
   --sucesso: #44d39c;
   --layout-max: 1120px;
+  --topo-offset: 0px;
   --space-1: 0.5rem;
   --space-2: 0.75rem;
   --space-3: 1rem;
@@ -86,14 +87,13 @@ body {
 }
 
 .topo {
-  position: sticky;
-  top: 0;
+  position: static;
   z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  transition: all 0.35s ease;
+  transition: none;
 }
 
 .caixa-logo {
@@ -107,7 +107,7 @@ body {
   height: 90px;
   border-radius: 50%;
   object-fit: cover;
-  transition: all 0.35s ease;
+  transition: none;
 }
 
 .topo.shrink .logo-site {
@@ -1073,7 +1073,7 @@ summary:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 28ch;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: none;
 }
 
 .topo.shrink .subtitulo-topo {
@@ -1154,7 +1154,7 @@ summary:focus-visible {
 }
 
 .topo {
-  position: sticky;
+  position: static;
   isolation: isolate;
   background:
     linear-gradient(118deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 42%),
@@ -1409,9 +1409,7 @@ body {
   padding: var(--space-2);
   gap: 0.6rem;
   border-radius: 12px;
-  position: sticky;
-  top: 5.15rem;
-  z-index: 920;
+  position: static;
   backdrop-filter: blur(8px);
 }
 
@@ -1435,6 +1433,10 @@ body {
   gap: var(--space-3);
   align-items: stretch;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+#areaProdutos {
+  scroll-margin-top: calc(var(--topo-offset) + var(--space-2));
 }
 
 .produto-card {
