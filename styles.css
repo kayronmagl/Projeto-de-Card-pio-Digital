@@ -2312,15 +2312,38 @@ body {
   margin-top: 0.3rem;
   margin-bottom: 0.9rem;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .rodape-nota {
   margin: 0;
   font-size: 0.78rem;
-  color: #ababa8;
+  color: rgba(232, 228, 220, 0.72);
+  line-height: 1.45;
+}
+
+.link-assinatura {
+  color: #e6c98c;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(230, 201, 140, 0.28);
+  transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.link-assinatura:hover {
+  color: #ffe3ad;
+  border-bottom-color: rgba(255, 227, 173, 0.72);
+}
+
+.link-assinatura:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .link-admin {
@@ -2866,10 +2889,12 @@ body {
     justify-content: center;
     margin-top: 0.2rem;
     margin-bottom: 0.8rem;
+    padding-top: 0.65rem;
   }
 
   .rodape-nota {
-    display: none;
+    width: 100%;
+    text-align: center;
   }
 
   .admin-resumo {
@@ -2921,6 +2946,10 @@ body {
 @media (max-width: 640px) {
   .rodape-utilitarios {
     margin-bottom: 0.65rem;
+  }
+
+  .rodape-nota {
+    font-size: 0.75rem;
   }
 
   .link-admin {

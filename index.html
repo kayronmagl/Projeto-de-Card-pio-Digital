@@ -72,8 +72,10 @@
 
   <main id="areaProdutos" class="grade-produtos layout-shell" aria-live="polite"></main>
 
-  <footer class="rodape-utilitarios layout-shell" aria-label="Acessos internos">
-    <p class="rodape-nota">Acesso interno da equipe</p>
+  <footer class="rodape-utilitarios layout-shell" aria-label="Créditos do site e acessos internos">
+    <p class="rodape-nota">Criado e desenvolvido por <a class="link-assinatura"
+        href="https://www.instagram.com/kayronmagl/" target="_blank" rel="noopener noreferrer">Kayron
+        Magalhães</a></p>
     <button id="botaoAbrirAdmin" type="button" class="link-admin" aria-controls="painelAdmin"
       aria-expanded="false">Abrir área administrativa</button>
   </footer>
@@ -1991,10 +1993,14 @@
 
     function validarFormulario() {
       limparErrosCampos();
+      const statusAtual = obterStatusLoja();
       const tipoAtendimento = atendimentoAtual();
       const tipoPedido = tipoEntrega.value;
       const { total } = calcularTotaisPedido();
 
+      if (!statusAtual.aberta) {
+        return { mensagem: `Não é possível finalizar agora. ${statusAtual.detalhe}.`, campo: null };
+      }
       if (carrinho.length === 0) {
         return { mensagem: "Adicione pelo menos um item ao carrinho.", campo: null };
       }
