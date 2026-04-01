@@ -145,11 +145,12 @@
 
               <label for="enderecoEntrega">Endereço para entrega:</label>
               <input type="text" id="enderecoEntrega" data-erro-id="erroEnderecoEntrega"
-                aria-describedby="erroEnderecoEntrega" placeholder="Rua, número e complemento">
+                aria-describedby="erroEnderecoEntrega" placeholder="Rua, número e complemento" maxlength="140"
+                autocomplete="street-address">
               <p id="erroEnderecoEntrega" class="erro erro-campo oculto"></p>
 
               <label for="referencia">Ponto de referência:</label>
-              <input type="text" id="referencia" placeholder="Ex.: perto da praça">
+              <input type="text" id="referencia" placeholder="Ex.: perto da praça" maxlength="100">
 
               <p id="taxaEntregaInfo" class="aviso taxa"></p>
               <p id="bloqueioEntregaInfo" class="erro oculto" role="alert"></p>
@@ -167,7 +168,7 @@
             <legend>2. Pedido no local</legend>
             <p class="aviso tempo-espera">Tempo aproximado: 20 a 40 minutos.</p>
             <label for="numeroMesa">Número da mesa:</label>
-            <input type="number" id="numeroMesa" min="1" step="1" data-erro-id="erroNumeroMesa"
+            <input type="number" id="numeroMesa" min="1" max="999" step="1" data-erro-id="erroNumeroMesa"
               aria-describedby="erroNumeroMesa" placeholder="Ex.: 3">
             <p id="erroNumeroMesa" class="erro erro-campo oculto"></p>
           </fieldset>
@@ -176,17 +177,23 @@
             <legend>3. Dados do cliente</legend>
             <label for="nome">Nome completo:</label>
             <input type="text" id="nome" autocomplete="name" data-erro-id="erroNome" aria-describedby="ajudaNome erroNome"
-              required>
+              maxlength="80" required>
             <p id="ajudaNome" class="ajuda-texto">Informe o nome usado para identificação do pedido.</p>
             <p id="erroNome" class="erro erro-campo oculto"></p>
 
             <div id="blocoTelefone">
               <label for="telefone">Telefone ou WhatsApp:</label>
               <input type="tel" id="telefone" inputmode="tel" autocomplete="tel" data-erro-id="erroTelefone"
-                aria-describedby="ajudaTelefone erroTelefone" placeholder="(88) 98888-7777" required>
+                aria-describedby="ajudaTelefone erroTelefone" placeholder="(88) 98888-7777" maxlength="16" required>
               <p id="ajudaTelefone" class="ajuda-texto">Use DDD + número.</p>
               <p id="erroTelefone" class="erro erro-campo oculto"></p>
             </div>
+
+            <label class="checkbox-linha">
+              <input type="checkbox" id="lembrarDadosCliente">
+              Lembrar meus dados neste aparelho por 24 horas
+            </label>
+            <p class="ajuda-texto">Salva nome, telefone e endereço por 24 horas apenas neste aparelho.</p>
           </fieldset>
 
           <fieldset class="bloco-form">
@@ -230,7 +237,7 @@
           <fieldset class="bloco-form">
             <legend>5. Observações</legend>
             <label for="observacoes">Detalhes do pedido:</label>
-            <textarea id="observacoes" placeholder="Ex.: sem cebola, sem verdura, etc."></textarea>
+            <textarea id="observacoes" placeholder="Ex.: sem cebola, sem verdura, etc." maxlength="250"></textarea>
           </fieldset>
 
           <fieldset class="bloco-form">
@@ -557,8 +564,11 @@
     }
 
     const CHAVE_STORAGE_CARRINHO = "tobias_lanches_carrinho_v3";
-    const CHAVE_STORAGE_FORMULARIO = "tobias_lanches_form_v3";
+    const CHAVE_STORAGE_FORMULARIO = "tobias_lanches_form_session_v1";
+    const CHAVE_STORAGE_DADOS_CLIENTE = "tobias_lanches_cliente_v1";
+    const CHAVE_STORAGE_FORMULARIO_LEGADO = "tobias_lanches_form_v3";
     const CHAVE_SEQUENCIA_PEDIDO = "tobias_lanches_seq_";
+    const DURACAO_LEMBRAR_DADOS_MS = 24 * 60 * 60 * 1000;
     const sequenciaPedidoMemoria = Object.create(null);
 
     const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
@@ -611,6 +621,7 @@
     const nome = document.getElementById("nome");
     const blocoTelefone = document.getElementById("blocoTelefone");
     const telefone = document.getElementById("telefone");
+    const lembrarDadosCliente = document.getElementById("lembrarDadosCliente");
     const referencia = document.getElementById("referencia");
     const pagamento = document.getElementById("pagamento");
     const pixInfo = document.getElementById("pixInfo");
@@ -732,6 +743,32 @@
       }
     }
 
+    function removerStorageSeguro(chave) {
+      try {
+        localStorage.removeItem(chave);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function lerStorageSessaoSeguro(chave) {
+      try {
+        return sessionStorage.getItem(chave);
+      } catch {
+        return null;
+      }
+    }
+
+    function salvarStorageSessaoSeguro(chave, valor) {
+      try {
+        sessionStorage.setItem(chave, valor);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     function escaparHtml(valor) {
       return String(valor ?? "")
         .replace(/&/g, "&amp;")
@@ -739,6 +776,29 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function normalizarTextoLinha(valor, limite) {
+      return String(valor ?? "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, limite);
+    }
+
+    function normalizarMesa(valor) {
+      const numero = Number.parseInt(String(valor ?? "").replace(/\D/g, ""), 10);
+      if (!Number.isFinite(numero) || numero < 1) {
+        return "";
+      }
+      return String(Math.min(numero, 999));
+    }
+
+    function sanitizarCamposPedido() {
+      nome.value = normalizarTextoLinha(nome.value, 80);
+      enderecoEntrega.value = normalizarTextoLinha(enderecoEntrega.value, 140);
+      referencia.value = normalizarTextoLinha(referencia.value, 100);
+      observacoes.value = normalizarTextoLinha(observacoes.value, 250);
+      numeroMesa.value = normalizarMesa(numeroMesa.value);
     }
 
     function obterElementosFocaveis(container) {
@@ -1368,6 +1428,109 @@
       return item.precoBase + totalExtras;
     }
 
+    function identificarComboCarrinho(item) {
+      const idBruto = String(item?.produtoId ?? item?.id ?? "");
+      const correspondencia = /^combo-(.+)-(\d+)-(\d+)$/.exec(idBruto);
+      if (!correspondencia) {
+        return null;
+      }
+      return {
+        categoriaBase: correspondencia[1],
+        baseId: Number(correspondencia[2]),
+        bebidaId: Number(correspondencia[3])
+      };
+    }
+
+    function sanitizarExtrasCarrinho(extras, idsPermitidos = new Set()) {
+      if (!Array.isArray(extras)) {
+        return [];
+      }
+      return extras
+        .map((extra) => {
+          const adicional = adicionaisCatalogo[String(extra?.id || "")];
+          if (!adicional || !idsPermitidos.has(adicional.id)) {
+            return null;
+          }
+          return {
+            id: adicional.id,
+            nome: adicional.nome,
+            preco: adicional.preco
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function sanitizarItemCarrinho(item) {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const quantidade = Math.max(1, Math.min(Number.parseInt(item.quantidade, 10) || 1, 99));
+      const observacaoItem = normalizarTextoLinha(item.observacaoItem || "", 70);
+      const comboInfo = identificarComboCarrinho(item);
+
+      if (comboInfo) {
+        const itemBase = obterProdutoPorId(comboInfo.baseId);
+        const bebida = obterProdutoPorId(comboInfo.bebidaId);
+        if (!itemBase || !bebida || !produtoEstaDisponivel(itemBase) || !produtoEstaDisponivel(bebida)) {
+          return null;
+        }
+
+        const produtoId = `combo-${comboInfo.categoriaBase}-${itemBase.id}-${bebida.id}`;
+        const nomeCategoriaBase = categoriasCatalogo[comboInfo.categoriaBase] || comboInfo.categoriaBase;
+        return {
+          chave: gerarChaveCarrinho(produtoId, [], observacaoItem),
+          produtoId,
+          nome: `Combo ${nomeCategoriaBase}: ${itemBase.nome} + ${bebida.nome}`,
+          precoBase: calcularPrecoCombo(itemBase, bebida),
+          extras: [],
+          observacaoItem,
+          quantidade
+        };
+      }
+
+      const produtoId = Number(item.produtoId);
+      const produto = obterProdutoPorId(produtoId);
+      if (!produto || !produtoEstaDisponivel(produto)) {
+        return null;
+      }
+
+      const idsPermitidos = new Set(produto.adicionais || []);
+      const extras = sanitizarExtrasCarrinho(item.extras, idsPermitidos);
+
+      return {
+        chave: gerarChaveCarrinho(produto.id, extras, observacaoItem),
+        produtoId: produto.id,
+        nome: produto.nome,
+        precoBase: produto.preco,
+        extras,
+        observacaoItem,
+        quantidade
+      };
+    }
+
+    function sanitizarCarrinho() {
+      if (!Array.isArray(carrinho)) {
+        carrinho = [];
+        return;
+      }
+
+      const itensAgrupados = [];
+      carrinho
+        .map((item) => sanitizarItemCarrinho(item))
+        .filter(Boolean)
+        .forEach((item) => {
+          const existente = itensAgrupados.find((registro) => registro.chave === item.chave);
+          if (existente) {
+            existente.quantidade += item.quantidade;
+          } else {
+            itensAgrupados.push(item);
+          }
+        });
+
+      carrinho = itensAgrupados;
+    }
+
     function subtotalCarrinho() {
       return carrinho.reduce((acumulador, item) => acumulador + (precoUnitarioItem(item) * item.quantidade), 0);
     }
@@ -1510,23 +1673,50 @@
       salvarStorageSeguro(CHAVE_STORAGE_CARRINHO, JSON.stringify(carrinho));
     }
 
-    function salvarFormularioLocal() {
-      const estado = {
+    function coletarEstadoFormularioAtual() {
+      return {
         tipoAtendimento: atendimentoAtual(),
         tipoEntrega: tipoEntrega.value,
         bairroEntrega: bairroEntrega.value,
-        enderecoEntrega: enderecoEntrega.value,
-        referencia: referencia.value,
-        numeroMesa: numeroMesa.value,
-        nome: nome.value,
-        telefone: telefone.value,
+        enderecoEntrega: normalizarTextoLinha(enderecoEntrega.value, 140),
+        referencia: normalizarTextoLinha(referencia.value, 100),
+        numeroMesa: normalizarMesa(numeroMesa.value),
+        nome: normalizarTextoLinha(nome.value, 80),
+        telefone: telefone.value.trim(),
         pagamento: pagamento.value,
         precisaTroco: precisaTroco.checked,
         trocoPara: trocoPara.value,
-        observacoes: observacoes.value,
-        aceiteLgpd: aceiteLgpd.checked
+        observacoes: normalizarTextoLinha(observacoes.value, 250),
+        lembrarDadosCliente: Boolean(lembrarDadosCliente?.checked)
       };
-      salvarStorageSeguro(CHAVE_STORAGE_FORMULARIO, JSON.stringify(estado));
+    }
+
+    function salvarDadosClienteLembrados(estado) {
+      if (!estado.lembrarDadosCliente) {
+        removerStorageSeguro(CHAVE_STORAGE_DADOS_CLIENTE);
+        return;
+      }
+
+      const agora = Date.now();
+      const payload = {
+        savedAt: agora,
+        expiresAt: agora + DURACAO_LEMBRAR_DADOS_MS,
+        tipoAtendimento: estado.tipoAtendimento,
+        tipoEntrega: estado.tipoEntrega,
+        bairroEntrega: estado.bairroEntrega,
+        enderecoEntrega: estado.enderecoEntrega,
+        referencia: estado.referencia,
+        numeroMesa: estado.numeroMesa,
+        nome: estado.nome,
+        telefone: estado.telefone
+      };
+      salvarStorageSeguro(CHAVE_STORAGE_DADOS_CLIENTE, JSON.stringify(payload));
+    }
+
+    function salvarFormularioLocal() {
+      const estado = coletarEstadoFormularioAtual();
+      salvarStorageSessaoSeguro(CHAVE_STORAGE_FORMULARIO, JSON.stringify(estado));
+      salvarDadosClienteLembrados(estado);
     }
 
     function restaurarCarrinhoLocal() {
@@ -1540,35 +1730,111 @@
       }
     }
 
-    function restaurarFormularioLocal() {
+    function lerDadosClienteLembrados() {
       try {
-        const estado = JSON.parse(lerStorageSeguro(CHAVE_STORAGE_FORMULARIO) || "{}");
-        if (!estado || typeof estado !== "object") {
-          return;
+        const payload = JSON.parse(lerStorageSeguro(CHAVE_STORAGE_DADOS_CLIENTE) || "null");
+        if (!payload || typeof payload !== "object") {
+          return null;
         }
-
-        if (estado.tipoAtendimento === "no_local") {
-          const radioNoLocal = document.querySelector('input[name="tipoAtendimento"][value="no_local"]');
-          if (radioNoLocal) {
-            radioNoLocal.checked = true;
-          }
+        if (!Number.isFinite(payload.expiresAt) || payload.expiresAt < Date.now()) {
+          removerStorageSeguro(CHAVE_STORAGE_DADOS_CLIENTE);
+          return null;
         }
+        return payload;
+      } catch {
+        removerStorageSeguro(CHAVE_STORAGE_DADOS_CLIENTE);
+        return null;
+      }
+    }
 
-        tipoEntrega.value = estado.tipoEntrega || "";
-        bairroEntrega.value = estado.bairroEntrega || "";
-        enderecoEntrega.value = estado.enderecoEntrega || "";
-        referencia.value = estado.referencia || "";
-        numeroMesa.value = estado.numeroMesa || "";
-        nome.value = estado.nome || "";
-        telefone.value = estado.telefone || "";
+    function aplicarEstadoFormulario(estado, opcoes = {}) {
+      const incluirCamposTemporarios = opcoes.incluirCamposTemporarios !== false;
+      if (!estado || typeof estado !== "object") {
+        return;
+      }
+
+      if (estado.tipoAtendimento === "no_local") {
+        const radioNoLocal = document.querySelector('input[name="tipoAtendimento"][value="no_local"]');
+        if (radioNoLocal) {
+          radioNoLocal.checked = true;
+        }
+      }
+
+      tipoEntrega.value = estado.tipoEntrega || "";
+      bairroEntrega.value = estado.bairroEntrega || "";
+      enderecoEntrega.value = normalizarTextoLinha(estado.enderecoEntrega || "", 140);
+      referencia.value = normalizarTextoLinha(estado.referencia || "", 100);
+      numeroMesa.value = normalizarMesa(estado.numeroMesa || "");
+      nome.value = normalizarTextoLinha(estado.nome || "", 80);
+      telefone.value = aplicarMascaraTelefone(estado.telefone || "");
+
+      if (incluirCamposTemporarios) {
         pagamento.value = estado.pagamento || "";
         precisaTroco.checked = Boolean(estado.precisaTroco);
         trocoPara.value = estado.trocoPara || "";
-        observacoes.value = estado.observacoes || "";
-        aceiteLgpd.checked = Boolean(estado.aceiteLgpd);
+        observacoes.value = normalizarTextoLinha(estado.observacoes || "", 250);
+      }
+    }
+
+    function migrarFormularioLegado() {
+      const estadoLegado = lerStorageSeguro(CHAVE_STORAGE_FORMULARIO_LEGADO);
+      if (!estadoLegado) {
+        return;
+      }
+      salvarStorageSessaoSeguro(CHAVE_STORAGE_FORMULARIO, estadoLegado);
+      removerStorageSeguro(CHAVE_STORAGE_FORMULARIO_LEGADO);
+    }
+
+    function restaurarFormularioLocal() {
+      migrarFormularioLegado();
+      const dadosLembrados = lerDadosClienteLembrados();
+      if (lembrarDadosCliente) {
+        lembrarDadosCliente.checked = Boolean(dadosLembrados);
+      }
+
+      try {
+        const estadoSessao = JSON.parse(lerStorageSessaoSeguro(CHAVE_STORAGE_FORMULARIO) || "null");
+        if (estadoSessao && typeof estadoSessao === "object") {
+          aplicarEstadoFormulario(estadoSessao);
+          return;
+        }
       } catch {
         // Sem restauração
       }
+
+      if (dadosLembrados) {
+        aplicarEstadoFormulario(dadosLembrados, { incluirCamposTemporarios: false });
+      }
+    }
+
+    function limparPedidoConcluido() {
+      carrinho = [];
+      salvarCarrinhoLocal();
+      pedidoPendente = null;
+
+      pagamento.value = "";
+      precisaTroco.checked = false;
+      trocoPara.value = "";
+      observacoes.value = "";
+      aceiteLgpd.checked = false;
+      numeroMesa.value = "";
+
+      if (!lembrarDadosCliente.checked) {
+        nome.value = "";
+        telefone.value = "";
+        bairroEntrega.value = "";
+        enderecoEntrega.value = "";
+        referencia.value = "";
+      }
+
+      mensagemCopiaPix.classList.add("oculto");
+      mensagemErroCopiaPix.classList.add("oculto");
+      limparErro();
+      limparErrosCampos();
+      atualizarBlocosPagamento();
+      atualizarVisibilidadeEntrega();
+      atualizarCarrinho();
+      salvarFormularioLocal();
     }
 
     function criarCardProduto(produto) {
@@ -2080,6 +2346,7 @@
     }
 
     function validarFormulario() {
+      sanitizarCamposPedido();
       limparErrosCampos();
       const statusAtual = obterStatusLoja();
       const tipoAtendimento = atendimentoAtual();
@@ -2092,7 +2359,7 @@
       if (carrinho.length === 0) {
         return { mensagem: "Adicione pelo menos um item ao carrinho.", campo: null };
       }
-      if (!nome.value.trim()) {
+      if (nome.value.length < 2) {
         marcarErroCampo(nome, erroNome, "Informe o nome completo.");
         return { mensagem: "Preencha o nome completo.", campo: nome };
       }
@@ -2152,6 +2419,10 @@
         if (!enderecoEntrega.value.trim()) {
           marcarErroCampo(enderecoEntrega, erroEnderecoEntrega, "Informe o endereço de entrega.");
           return { mensagem: "Informe o endereço de entrega.", campo: enderecoEntrega };
+        }
+        if (enderecoEntrega.value.trim().length < 5) {
+          marcarErroCampo(enderecoEntrega, erroEnderecoEntrega, "Informe um endereço mais completo.");
+          return { mensagem: "Informe um endereço mais completo.", campo: enderecoEntrega };
         }
       }
 
@@ -3184,6 +3455,24 @@
       salvarFormularioLocal();
     });
 
+    [nome, enderecoEntrega, referencia, observacoes].forEach((campo) => {
+      campo.addEventListener("blur", () => {
+        sanitizarCamposPedido();
+        salvarFormularioLocal();
+      });
+    });
+
+    numeroMesa.addEventListener("blur", () => {
+      numeroMesa.value = normalizarMesa(numeroMesa.value);
+      salvarFormularioLocal();
+    });
+
+    if (lembrarDadosCliente) {
+      lembrarDadosCliente.addEventListener("change", () => {
+        salvarFormularioLocal();
+      });
+    }
+
     formCliente.addEventListener("input", (evento) => {
       limparErroCampo(evento.target);
       if (evento.target !== telefone) {
@@ -3324,6 +3613,10 @@
 
     function iniciarFluxoFinalizacao() {
       limparErro();
+      sanitizarCamposPedido();
+      sanitizarCarrinho();
+      salvarCarrinhoLocal();
+      atualizarCarrinho();
 
       if (Date.now() < bloqueioEnvioAte) {
         mostrarErro("Aguarde alguns segundos antes de enviar outro pedido.", true);
@@ -3383,7 +3676,7 @@
       iniciarBloqueioEnvio(8);
       fecharConfirmacao();
       abrirCarrinho();
-      pedidoPendente = null;
+      limparPedidoConcluido();
     });
 
     modalConfirmacao.addEventListener("click", (evento) => {
@@ -3426,7 +3719,10 @@
       limparFormularioProdutoAdmin();
 
       restaurarCarrinhoLocal();
+      sanitizarCarrinho();
+      salvarCarrinhoLocal();
       restaurarFormularioLocal();
+      sanitizarCamposPedido();
       atualizarBairrosEntregaUI();
       renderizarCategorias();
       mostrarProdutos();
